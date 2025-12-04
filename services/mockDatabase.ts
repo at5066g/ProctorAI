@@ -120,6 +120,16 @@ class CloudDatabase {
     }
   }
 
+  async toggleExamPublishStatus(id: string, isPublished: boolean) {
+    try {
+      const docRef = doc(firestore, "exams", id);
+      await updateDoc(docRef, { isPublished });
+    } catch (e) {
+      console.error("Toggle Exam Status Error", e);
+      throw e;
+    }
+  }
+
   async deleteExam(id: string) {
     try {
       // 1. Delete the Exam Document

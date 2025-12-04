@@ -40,6 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleJoinSection = () => {
     if (!instructorIdFilter) return;
+    // Students can only see PUBLISHED exams
     const matches = exams.filter(e => e.instructorId === instructorIdFilter && e.isPublished);
     setFilteredExams(matches);
   };
@@ -57,11 +58,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (window.confirm("Are you sure you want to delete this exam? This action cannot be undone.")) {
       try {
         await db.deleteExam(examId);
-        // Refresh list
         fetchData();
       } catch (e) {
         alert("Failed to delete exam.");
       }
+    }
+  };
+
+  const handleToggleStatus = async (exam: Exam) => {
+    try {
+      const newStatus = !exam.isPublished;
+      await db.toggleExamPublishStatus(exam.id, newStatus);
+      fetchData(); // Refresh list to show new status
+    } catch (e) {
+      alert("Failed to update status");
     }
   };
 
@@ -167,23 +177,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           {filteredExams.map(exam => {
              const attempt = getAttemptStatus(exam.id);
              return (
-              <div key={exam.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
+              <div key={exam.id} className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow flex flex-col justify-between ${!exam.isPublished && user.role === UserRole.INSTRUCTOR ? 'border-amber-200 bg-amber-50' : 'border-slate-200'}`}>
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-lg text-slate-900 leading-tight">{exam.title}</h3>
+                    <div className="flex-1">
+                      {user.role === UserRole.INSTRUCTOR && (
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded mb-2 inline-block ${exam.isPublished ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {exam.isPublished ? 'Active' : 'Disabled'}
+                        </span>
+                      )}
+                      <h3 className="font-bold text-lg text-slate-900 leading-tight">{exam.title}</h3>
+                    </div>
                     {user.role === UserRole.INSTRUCTOR && (
-                      <div className="flex gap-1">
+                      <div className="flex flex-col gap-1 ml-2">
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => navigate(`/edit/${exam.id}`)}
+                            className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteExam(exam.id)}
+                            className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
+                          >
+                            Del
+                          </button>
+                        </div>
                         <button 
-                          onClick={() => navigate(`/edit/${exam.id}`)}
-                          className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                          onClick={() => handleToggleStatus(exam)}
+                          className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                            exam.isPublished 
+                              ? 'text-amber-700 bg-amber-100 hover:bg-amber-200' 
+                              : 'text-green-700 bg-green-100 hover:bg-green-200'
+                          }`}
                         >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteExam(exam.id)}
-                          className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
-                        >
-                          Del
+                          {exam.isPublished ? 'Disable' : 'Enable'}
                         </button>
                       </div>
                     )}
