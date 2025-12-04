@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { db } from '../services/mockDatabase';
 
@@ -10,6 +11,9 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, title }) => {
+  const location = useLocation();
+  const isExamInProgress = user?.role === UserRole.STUDENT && location.pathname.startsWith('/exam/');
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
@@ -38,7 +42,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, title 
                   </div>
                   <button 
                     onClick={onLogout}
-                    className="text-sm text-red-600 hover:text-red-800 font-medium bg-red-50 px-3 py-1.5 rounded-md transition-colors"
+                    disabled={isExamInProgress}
+                    className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                      isExamInProgress 
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                        : 'text-red-600 hover:text-red-800 bg-red-50'
+                    }`}
                   >
                     Logout
                   </button>
