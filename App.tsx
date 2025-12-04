@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import CreateExam from './pages/CreateExam';
 import TakeExam from './pages/TakeExam';
 import ExamResult from './pages/ExamResult';
+import InstructorExamView from './pages/InstructorExamView';
 import { User, UserRole } from './types';
 import { db } from './services/mockDatabase';
 
@@ -40,6 +41,10 @@ const App: React.FC = () => {
           <Route 
             path="/create" 
             element={user.role === UserRole.INSTRUCTOR ? <CreateExam user={user} /> : <Navigate to="/dashboard" />} 
+          />
+          <Route 
+            path="/instructor/exam/:id" 
+            element={user.role === UserRole.INSTRUCTOR ? <InstructorExamView user={user} /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/exam/:id" 

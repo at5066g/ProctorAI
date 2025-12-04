@@ -193,6 +193,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                       )}
                     </div>
                   )}
+
+                  {user.role === UserRole.INSTRUCTOR && (
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => navigate(`/instructor/exam/${exam.id}`)}
+                        className="flex-1 bg-slate-800 text-white py-2 rounded-lg font-medium hover:bg-slate-900 transition-colors text-sm"
+                      >
+                        View Attempts
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -60,6 +60,18 @@ class CloudDatabase {
     return u ? JSON.parse(u) : null;
   }
 
+  async getUser(userId: string): Promise<User | null> {
+    try {
+        const q = query(collection(firestore, "users"), where("id", "==", userId));
+        const s = await getDocs(q);
+        if (!s.empty) return s.docs[0].data() as User;
+        return null;
+    } catch(e) { 
+        console.error("Get User Error", e);
+        return null; 
+    }
+  }
+
   async updateUser(user: User) {
     try {
       // In a real app, we'd use the Doc ID, but here we query by our custom ID
@@ -121,9 +133,19 @@ class CloudDatabase {
     }
   }
 
+  async getAttemptsForExam(examId: string): Promise<ExamAttempt[]> {
+    try {
+      const q = query(collection(firestore, "attempts"), where("examId", "==", examId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as ExamAttempt);
+    } catch (e) {
+      console.error("Get Exam Attempts Error", e);
+      return [];
+    }
+  }
+
   async getAttempt(id: string): Promise<ExamAttempt | undefined> {
     try {
-       const docRef = doc(firestore, "attempts", id);
        // We fetch all for now or query specific. 
        // For this simple structure, let's query by ID field if document ID matches
        const q = query(collection(firestore, "attempts"), where("id", "==", id));
