@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { db, USERS_CSV } from '../services/mockDatabase';
+import { db } from '../services/mockDatabase';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -29,17 +29,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const downloadCSV = () => {
-    const blob = new Blob([USERS_CSV], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'proctorai_credentials.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   return (
@@ -94,29 +83,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             {loading ? 'Verifying...' : 'Sign In'}
           </button>
         </form>
-        
-        <div className="pt-6 border-t border-slate-100">
-           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 text-center">
-             Default Credentials (On First Run)
-           </h3>
-           <div className="text-sm text-slate-600 space-y-2 bg-slate-50 p-4 rounded-lg">
-              <div className="flex justify-between">
-                <span>student@test.com</span>
-                <span className="font-mono text-slate-400">123456</span>
-              </div>
-              <div className="flex justify-between">
-                <span>shwetha@test.com</span>
-                <span className="font-mono text-slate-400">admin123</span>
-              </div>
-           </div>
-           
-           <button 
-             onClick={downloadCSV}
-             className="mt-4 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-1"
-           >
-             Download CSV Backup
-           </button>
-        </div>
       </div>
     </div>
   );
