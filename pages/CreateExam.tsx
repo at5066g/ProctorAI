@@ -145,10 +145,10 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
           </div>
         )}
         {questions.map((q, idx) => (
-          <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative group">
+          <div key={q.id} className="bg-white px-6 pb-6 pt-10 rounded-xl shadow-sm border border-slate-200 relative group transition-all hover:shadow-md">
             <button 
               onClick={() => removeQuestion(q.id)}
-              className="absolute top-4 right-4 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-2 right-2 text-xs font-semibold text-slate-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-all opacity-0 group-hover:opacity-100"
             >
               Remove
             </button>
@@ -159,7 +159,7 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
               <div className="flex-1">
                 <div className="flex justify-between items-start">
                    <h3 className="font-medium text-slate-900 mb-2">{q.text}</h3>
-                   <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{q.type}</span>
+                   <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded shrink-0 ml-4">{q.type}</span>
                 </div>
                 
                 {q.type === QuestionType.MCQ && (
