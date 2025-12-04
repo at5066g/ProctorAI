@@ -19,24 +19,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const allExams = await db.getExams();
-      setExams(allExams);
-      
-      if (user.role === UserRole.INSTRUCTOR) {
-        setFilteredExams(allExams.filter(e => e.instructorId === user.id));
-      } else {
-        // Students see nothing until filtered
-        setFilteredExams([]);
-        const myAttempts = await db.getAttempts(user.id);
-        setAttempts(myAttempts);
-      }
-      setLoading(false);
-    };
-
     fetchData();
   }, [user]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const allExams = await db.getExams();
+    setExams(allExams);
+    
+    if (user.role === UserRole.INSTRUCTOR) {
+      setFilteredExams(allExams.filter(e => e.instructorId === user.id));
+    } else {
+      // Students see nothing until filtered
+      setFilteredExams([]);
+      const myAttempts = await db.getAttempts(user.id);
+      setAttempts(myAttempts);
+    }
+    setLoading(false);
+  };
 
   const handleJoinSection = () => {
     if (!instructorIdFilter) return;
@@ -50,6 +50,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       await db.updateUser(updatedUser);
       setIsEditingName(false);
       window.location.reload(); 
+    }
+  };
+
+  const handleDeleteExam = async (examId: string) => {
+    if (window.confirm("Are you sure you want to delete this exam? This action cannot be undone.")) {
+      try {
+        await db.deleteExam(examId);
+        // Refresh list
+        fetchData();
+      } catch (e) {
+        alert("Failed to delete exam.");
+      }
     }
   };
 
@@ -160,9 +172,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="font-bold text-lg text-slate-900 leading-tight">{exam.title}</h3>
                     {user.role === UserRole.INSTRUCTOR && (
-                      <span className={`px-2 py-1 text-xs rounded-full shrink-0 ${exam.isPublished ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {exam.isPublished ? 'Live' : 'Draft'}
-                      </span>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => navigate(`/edit/${exam.id}`)}
+                          className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteExam(exam.id)}
+                          className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100"
+                        >
+                          Del
+                        </button>
+                      </div>
                     )}
                   </div>
                   <p className="text-slate-500 text-sm mb-4 line-clamp-3">{exam.description}</p>

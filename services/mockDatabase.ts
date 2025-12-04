@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { 
   getFirestore, collection, getDocs, doc, setDoc, 
-  query, where, addDoc, updateDoc 
+  query, where, addDoc, updateDoc, deleteDoc
 } from "firebase/firestore";
 import { User, Exam, ExamAttempt, UserRole } from '../types';
 
@@ -116,6 +116,25 @@ class CloudDatabase {
       await setDoc(doc(firestore, "exams", exam.id), this.sanitize(exam));
     } catch (e) {
       console.error("Create Exam Error", e);
+      throw e;
+    }
+  }
+
+  async deleteExam(id: string) {
+    try {
+      // 1. Delete the Exam Document
+      await deleteDoc(doc(firestore, "exams", id));
+
+      // 2. Cascade Delete: Find all attempts associated with this exam
+      const q = query(collection(firestore, "attempts"), where("examId", "==", id));
+      const snapshot = await getDocs(q);
+
+      // 3. Delete all found attempts concurrently
+      const deletePromises = snapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
+      await Promise.all(deletePromises);
+      
+    } catch (e) {
+      console.error("Delete Exam Error", e);
       throw e;
     }
   }

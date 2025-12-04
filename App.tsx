@@ -43,6 +43,10 @@ const App: React.FC = () => {
             element={user.role === UserRole.INSTRUCTOR ? <CreateExam user={user} /> : <Navigate to="/dashboard" />} 
           />
           <Route 
+            path="/edit/:id" 
+            element={user.role === UserRole.INSTRUCTOR ? <CreateExam user={user} /> : <Navigate to="/dashboard" />} 
+          />
+          <Route 
             path="/instructor/exam/:id" 
             element={user.role === UserRole.INSTRUCTOR ? <InstructorExamView user={user} /> : <Navigate to="/dashboard" />} 
           />

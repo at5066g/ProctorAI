@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../services/mockDatabase';
 import { generateExamQuestions } from '../services/geminiService';
 import { Question, QuestionType, Exam, User } from '../types';
 
 const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>(); // Check for ID param
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
@@ -13,6 +14,32 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const [duration, setDuration] = useState(30);
   const [topic, setTopic] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
+
+  // Load existing exam if editing
+  useEffect(() => {
+    if (id) {
+      const loadExam = async () => {
+        setLoading(true);
+        const exam = await db.getExam(id);
+        if (exam) {
+          if (exam.instructorId !== user.id) {
+            alert("Unauthorized");
+            navigate('/dashboard');
+            return;
+          }
+          setTitle(exam.title);
+          setDescription(exam.description);
+          setDuration(exam.durationMinutes);
+          setQuestions(exam.questions);
+        } else {
+          alert("Exam not found");
+          navigate('/dashboard');
+        }
+        setLoading(false);
+      };
+      loadExam();
+    }
+  }, [id, user.id, navigate]);
 
   const handleGenerate = async () => {
     if (!topic) return alert("Please enter a topic for AI generation");
@@ -32,7 +59,8 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
     
     setSaving(true);
     const newExam: Exam = {
-      id: `exam-${Date.now()}`,
+      // If editing, preserve ID, else generate new
+      id: id ? id : `exam-${Date.now()}`,
       title,
       description,
       durationMinutes: duration,
@@ -42,7 +70,7 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
       isPublished: true
     };
     
-    await db.createExam(newExam);
+    await db.createExam(newExam); // Acts as update if ID exists
     setSaving(false);
     navigate('/dashboard');
   };
@@ -51,10 +79,12 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
 
+  if (loading && id) return <div className="p-8 text-center">Loading Exam Data...</div>;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Create New Exam</h1>
+        <h1 className="text-3xl font-bold text-slate-900">{id ? 'Edit Exam' : 'Create New Exam'}</h1>
         <p className="text-slate-500 mt-2">Configure exam details and generate questions using AI.</p>
       </div>
 
@@ -159,7 +189,7 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
           disabled={saving}
           className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
         >
-          {saving ? 'Saving to Cloud...' : 'Publish Exam'}
+          {saving ? 'Saving...' : (id ? 'Update Exam' : 'Publish Exam')}
         </button>
       </div>
     </div>
