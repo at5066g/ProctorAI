@@ -8,6 +8,8 @@ interface TakeExamProps {
   user: User;
 }
 
+const MAX_VIOLATIONS = 3;
+
 const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   
   // Anti-cheat refs
   const hasLeftTab = useRef(false);
+  const lastViolationTime = useRef(0);
 
   // Load Exam
   useEffect(() => {
@@ -77,25 +80,31 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     return () => clearInterval(interval);
   }, [timeLeft, exam]);
 
-  // Anti-Cheat: Visibility Change
+  // Anti-Cheat: Visibility Change & Blur
   useEffect(() => {
+    const logViolation = (message: string) => {
+        const now = Date.now();
+        // Debounce: Ignore violations if they happen within 1 second of each other
+        if (now - lastViolationTime.current < 1000) return;
+        
+        lastViolationTime.current = now;
+        hasLeftTab.current = true;
+        
+        setViolations(prev => [...prev, {
+          timestamp: now,
+          type: 'TAB_SWITCH',
+          message: message
+        }]);
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        hasLeftTab.current = true;
-        setViolations(prev => [...prev, {
-          timestamp: Date.now(),
-          type: 'TAB_SWITCH',
-          message: 'User switched tabs or minimized window'
-        }]);
+        logViolation('User switched tabs or minimized window');
       }
     };
 
     const handleBlur = () => {
-        setViolations(prev => [...prev, {
-            timestamp: Date.now(),
-            type: 'TAB_SWITCH',
-            message: 'Window lost focus'
-          }]);
+        logViolation('Window lost focus');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -151,11 +160,22 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     return { score: percentage, feedback: feedbackSummary };
   };
 
-  const handleSubmit = useCallback(async (auto: boolean = false) => {
+  const handleSubmit = useCallback(async (auto: boolean = false, disqualified: boolean = false) => {
     if (!exam) return;
     setIsSubmitting(true);
 
-    const { score, feedback } = await calculateScore(answers);
+    let score = 0;
+    let feedback = "";
+
+    if (disqualified) {
+      // Force failure
+      score = 0;
+      feedback = "⚠️ DISQUALIFIED: You exceeded the maximum allowed violations (Tab switching/Window blur). Your exam has been automatically submitted with a score of 0.";
+    } else {
+      const result = await calculateScore(answers);
+      score = result.score;
+      feedback = result.feedback;
+    }
 
     const attempt: ExamAttempt = {
       id: `att-${Date.now()}`,
@@ -174,6 +194,14 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     setIsSubmitting(false);
     navigate(`/result/${attempt.id}`);
   }, [exam, answers, violations, user.id, timeLeft, navigate]);
+
+  // Monitor violations threshold
+  useEffect(() => {
+    if (violations.length > MAX_VIOLATIONS && !isSubmitting) {
+      // Trigger forced submission
+      handleSubmit(true, true);
+    }
+  }, [violations, isSubmitting, handleSubmit]);
 
   if (!exam) return <div className="p-8 text-center">Loading Exam...</div>;
 
@@ -265,15 +293,21 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
               <h3 className="font-bold text-yellow-800 mb-2 text-sm">⚠️ Anti-Cheat Active</h3>
               <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-4">
-                <li>Tab switching is monitored.</li>
-                <li>Copy/Paste is disabled.</li>
-                <li>Face detection is on.</li>
+                <li>Tab switching monitored.</li>
+                <li>Limit: <span className="font-bold text-red-600">{MAX_VIOLATIONS} Violations</span> max.</li>
+                <li>Copy/Paste disabled.</li>
               </ul>
-              {violations.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-yellow-200">
-                  <div className="text-red-600 font-bold text-xs">Violations Detected: {violations.length}</div>
+              <div className="mt-3 pt-3 border-t border-yellow-200">
+                <div className={`font-bold text-xs flex justify-between items-center ${violations.length > MAX_VIOLATIONS ? 'text-red-700' : 'text-slate-700'}`}>
+                   <span>Violations Detected:</span>
+                   <span className="text-lg">{violations.length} <span className="text-xs text-slate-400">/ {MAX_VIOLATIONS}</span></span>
                 </div>
-              )}
+                {violations.length > 2 && (
+                  <p className="text-[10px] text-red-600 mt-1 font-semibold animate-pulse">
+                    Warning: Approaching limit!
+                  </p>
+                )}
+              </div>
            </div>
         </div>
       </div>
