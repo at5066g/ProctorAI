@@ -1,0 +1,8 @@
+{
+  "name": "ProctorAI - Exam Platform",
+  "description": "A secure, AI-powered online examination platform with proctoring, auto-grading, and anti-cheat capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
