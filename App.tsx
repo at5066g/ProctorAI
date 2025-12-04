@@ -7,6 +7,7 @@ import CreateExam from './pages/CreateExam';
 import TakeExam from './pages/TakeExam';
 import ExamResult from './pages/ExamResult';
 import InstructorExamView from './pages/InstructorExamView';
+import AdminDashboard from './pages/AdminDashboard';
 import { User, UserRole } from './types';
 import { db } from './services/mockDatabase';
 
@@ -34,10 +35,28 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <Layout user={user} onLogout={handleLogout}>
+      <Layout user={user} onLogout={handleLogout} title={user.role === UserRole.ADMIN ? 'Administrator' : undefined}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard user={user} />} />
+          {/* Main Route Handling: Admins go to /admin, others to /dashboard */}
+          <Route path="/" element={
+            user.role === UserRole.ADMIN 
+              ? <Navigate to="/admin" replace /> 
+              : <Navigate to="/dashboard" replace />
+          } />
+
+          {/* Role-Protected Routes */}
+          <Route path="/admin" element={
+            user.role === UserRole.ADMIN 
+              ? <AdminDashboard /> 
+              : <Navigate to="/dashboard" />
+          } />
+
+          <Route path="/dashboard" element={
+            user.role === UserRole.ADMIN 
+              ? <Navigate to="/admin" /> 
+              : <Dashboard user={user} />
+          } />
+
           <Route 
             path="/create" 
             element={user.role === UserRole.INSTRUCTOR ? <CreateExam user={user} /> : <Navigate to="/dashboard" />} 

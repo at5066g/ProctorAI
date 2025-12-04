@@ -72,6 +72,33 @@ class CloudDatabase {
     }
   }
 
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const querySnapshot = await getDocs(collection(firestore, "users"));
+      return querySnapshot.docs.map(doc => doc.data() as User);
+    } catch (e) {
+      console.error("Get All Users Error", e);
+      return [];
+    }
+  }
+
+  async createUser(user: User & { password?: string }) {
+    try {
+      // Check if email already exists
+      const q = query(collection(firestore, "users"), where("email", "==", user.email));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        throw new Error("User with this email already exists");
+      }
+
+      // Add to Firestore using custom ID
+      await setDoc(doc(firestore, "users", user.id), this.sanitize(user));
+    } catch (e) {
+      console.error("Create User Error", e);
+      throw e;
+    }
+  }
+
   async updateUser(user: User) {
     try {
       // In a real app, we'd use the Doc ID, but here we query by our custom ID
