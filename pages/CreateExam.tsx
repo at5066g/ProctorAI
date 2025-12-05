@@ -145,10 +145,10 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
           </div>
         )}
         {questions.map((q, idx) => (
-          <div key={q.id} className="bg-white px-6 pb-6 pt-10 rounded-xl shadow-sm border border-slate-200 relative group transition-all hover:shadow-md">
+          <div key={q.id} className="bg-white px-6 pb-6 pt-12 rounded-xl shadow-sm border border-slate-200 relative group transition-all hover:shadow-md">
             <button 
               onClick={() => removeQuestion(q.id)}
-              className="absolute top-2 right-2 text-xs font-semibold text-slate-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-all opacity-0 group-hover:opacity-100"
+              className="absolute top-3 right-3 text-xs font-semibold text-slate-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-200"
             >
               Remove
             </button>
