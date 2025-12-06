@@ -14,6 +14,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [instructorIdFilter, setInstructorIdFilter] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(user.name);
+  
+  // Password Change State
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+
   const [loading, setLoading] = useState(true);
   
   const navigate = useNavigate();
@@ -51,6 +56,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       await db.updateUser(updatedUser);
       setIsEditingName(false);
       window.location.reload(); 
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (!newPassword.trim()) return alert("Password cannot be empty");
+    try {
+      await db.updatePassword(user.id, newPassword);
+      alert("Password updated successfully!");
+      setIsChangingPassword(false);
+      setNewPassword('');
+    } catch (e) {
+      alert("Failed to update password");
     }
   };
 
@@ -113,6 +130,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                )}
              </div>
              <p className="text-slate-500 text-sm">{user.role} | ID: <span className="font-mono font-medium text-slate-700">{user.id}</span></p>
+             
+             {/* Change Password UI */}
+             <div className="mt-1">
+               {isChangingPassword ? (
+                 <div className="flex items-center gap-2 mt-2">
+                   <input 
+                     type="password" 
+                     value={newPassword}
+                     onChange={(e) => setNewPassword(e.target.value)}
+                     placeholder="New Password"
+                     className="border border-slate-300 rounded px-2 py-1 text-xs w-32 outline-none focus:border-indigo-500"
+                   />
+                   <button onClick={handlePasswordUpdate} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">Save</button>
+                   <button onClick={() => setIsChangingPassword(false)} className="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+                 </div>
+               ) : (
+                 <button onClick={() => setIsChangingPassword(true)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 hover:underline">
+                   🔒 Change Password
+                 </button>
+               )}
+             </div>
+
            </div>
         </div>
 

@@ -114,6 +114,22 @@ class CloudDatabase {
     }
   }
 
+  async updatePassword(userId: string, newPassword: string) {
+    try {
+      const q = query(collection(firestore, "users"), where("id", "==", userId));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const docRef = snapshot.docs[0].ref;
+        await updateDoc(docRef, { password: newPassword });
+      } else {
+        throw new Error("User not found");
+      }
+    } catch (e) {
+      console.error("Update Password Error", e);
+      throw e;
+    }
+  }
+
   logout() {
     localStorage.removeItem('currentUser');
   }
