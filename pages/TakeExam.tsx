@@ -204,11 +204,13 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   };
 
   // Attach Camera stream to Video Element once UI is rendered
+  // CRITICAL FIX: Re-run this effect when isFullscreen changes (i.e. returning from overlay)
   useEffect(() => {
     if (isStarted && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(e => console.error("Video play error:", e));
     }
-  }, [isStarted]);
+  }, [isStarted, isFullscreen]);
 
 
   const handleAnswerChange = (qId: string, val: string) => {
