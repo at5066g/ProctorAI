@@ -12,13 +12,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [filteredExams, setFilteredExams] = useState<Exam[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
   const [instructorIdFilter, setInstructorIdFilter] = useState('');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState(user.name);
   
-  // Password Change State
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [tempName, setTempName] = useState(user.name);
+  const [tempId, setTempId] = useState(user.id);
+  const [tempPassword, setTempPassword] = useState(''); // New Password Field inside Edit
+  
   const [loading, setLoading] = useState(true);
   
   const navigate = useNavigate();
@@ -50,24 +50,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     setFilteredExams(matches);
   };
 
-  const handleNameUpdate = async () => {
-    if (tempName.trim()) {
-      const updatedUser = { ...user, name: tempName };
-      await db.updateUser(updatedUser);
-      setIsEditingName(false);
-      window.location.reload(); 
-    }
-  };
+  const handleProfileUpdate = async () => {
+    if (!tempName.trim()) return alert("Name cannot be empty");
+    if (!tempId.trim()) return alert("ID cannot be empty");
 
-  const handlePasswordUpdate = async () => {
-    if (!newPassword.trim()) return alert("Password cannot be empty");
     try {
-      await db.updatePassword(user.id, newPassword);
-      alert("Password updated successfully!");
-      setIsChangingPassword(false);
-      setNewPassword('');
-    } catch (e) {
-      alert("Failed to update password");
+      let targetId = user.id;
+
+      // 1. Handle ID Change (Primary Migration)
+      // This function handles the ID Uniqueness Check internally
+      if (tempId !== user.id) {
+        if (!window.confirm("Changing your ID will migrate all your data to the new ID. This cannot be undone automatically. Continue?")) {
+            return;
+        }
+        // We pass the new name as an override so it gets saved during the migration
+        await db.updateUserId(user.id, tempId, user.role, { name: tempName });
+        targetId = tempId; // Logic continues with new ID
+      } else if (tempName !== user.name) {
+        // 2. Handle Name Change Only (if ID didn't change)
+        await db.updateUser({ ...user, name: tempName });
+      }
+
+      // 3. Handle Password Change (if provided)
+      if (tempPassword.trim()) {
+         await db.updatePassword(targetId, tempPassword);
+         alert("Profile and Password updated successfully!");
+      } else {
+         alert("Profile updated successfully!");
+      }
+      
+      setIsEditingProfile(false);
+      setTempPassword(''); // Clear sensitive field
+      window.location.reload(); // Force reload to sync new session data from localStorage
+    } catch (e: any) {
+      alert("Failed to update profile: " + e.message);
     }
   };
 
@@ -104,54 +120,64 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     <div className="space-y-8">
       {/* Profile / Identification Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-           <div className={`h-12 w-12 rounded-full flex items-center justify-center font-bold text-white text-xl ${user.role === UserRole.INSTRUCTOR ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+           <div className={`h-12 w-12 shrink-0 rounded-full flex items-center justify-center font-bold text-white text-xl ${user.role === UserRole.INSTRUCTOR ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
              {user.name.charAt(0)}
            </div>
-           <div>
-             <div className="flex items-center gap-2">
-               {isEditingName ? (
-                 <div className="flex items-center gap-2">
-                   <input 
-                     value={tempName}
-                     onChange={(e) => setTempName(e.target.value)}
-                     className="border border-slate-300 rounded px-2 py-1 text-sm"
-                     autoFocus
-                   />
-                   <button onClick={handleNameUpdate} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Save</button>
+           <div className="w-full">
+             <div className="flex flex-col gap-1">
+               {isEditingProfile ? (
+                 <div className="flex flex-col gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-sm min-w-[300px]">
+                   <h3 className="text-xs font-bold text-slate-500 uppercase">Edit Profile</h3>
+                   
+                   <div className="space-y-1">
+                     <label className="text-xs text-slate-500 font-semibold">Display Name</label>
+                     <input 
+                       value={tempName}
+                       onChange={(e) => setTempName(e.target.value)}
+                       className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
+                     />
+                   </div>
+
+                   <div className="space-y-1">
+                     <label className="text-xs text-slate-500 font-semibold">User ID (Unique)</label>
+                     <input 
+                       value={tempId}
+                       onChange={(e) => setTempId(e.target.value)}
+                       className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:border-indigo-500 font-mono"
+                     />
+                   </div>
+
+                   <div className="space-y-1">
+                     <label className="text-xs text-slate-500 font-semibold">Change Password (Optional)</label>
+                     <input 
+                       type="password"
+                       value={tempPassword}
+                       onChange={(e) => setTempPassword(e.target.value)}
+                       placeholder="Leave blank to keep current"
+                       className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
+                     />
+                   </div>
+
+                   <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200">
+                    <button onClick={handleProfileUpdate} className="flex-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded font-medium">Save All Changes</button>
+                    <button onClick={() => { setIsEditingProfile(false); setTempName(user.name); setTempId(user.id); setTempPassword(''); }} className="text-xs text-slate-600 hover:bg-slate-200 px-3 py-2 rounded">Cancel</button>
+                   </div>
                  </div>
                ) : (
                  <>
-                   <h2 className="text-xl font-bold text-slate-900">{user.name}</h2>
-                   <button onClick={() => setIsEditingName(true)} className="text-xs text-slate-400 hover:text-indigo-600">
-                     (Edit)
-                   </button>
+                   <div className="flex items-center gap-2">
+                     <h2 className="text-xl font-bold text-slate-900">{user.name}</h2>
+                     <button onClick={() => setIsEditingProfile(true)} className="text-xs text-slate-400 hover:text-indigo-600 flex items-center gap-1">
+                       ✎ Edit Profile
+                     </button>
+                   </div>
+                   <p className="text-slate-500 text-sm">
+                     {user.role} | ID: <span className="font-mono font-medium text-slate-700 bg-slate-100 px-1 rounded">{user.id}</span>
+                   </p>
                  </>
                )}
              </div>
-             <p className="text-slate-500 text-sm">{user.role} | ID: <span className="font-mono font-medium text-slate-700">{user.id}</span></p>
-             
-             {/* Change Password UI */}
-             <div className="mt-1">
-               {isChangingPassword ? (
-                 <div className="flex items-center gap-2 mt-2">
-                   <input 
-                     type="password" 
-                     value={newPassword}
-                     onChange={(e) => setNewPassword(e.target.value)}
-                     placeholder="New Password"
-                     className="border border-slate-300 rounded px-2 py-1 text-xs w-32 outline-none focus:border-indigo-500"
-                   />
-                   <button onClick={handlePasswordUpdate} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">Save</button>
-                   <button onClick={() => setIsChangingPassword(false)} className="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
-                 </div>
-               ) : (
-                 <button onClick={() => setIsChangingPassword(true)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 hover:underline">
-                   🔒 Change Password
-                 </button>
-               )}
-             </div>
-
            </div>
         </div>
 

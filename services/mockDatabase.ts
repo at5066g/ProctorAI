@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { 
   getFirestore, collection, getDocs, doc, setDoc, 
-  query, where, addDoc, updateDoc, deleteDoc
+  query, where, addDoc, updateDoc, deleteDoc, getDoc
 } from "firebase/firestore";
 import { User, Exam, ExamAttempt, UserRole } from '../types';
 
@@ -90,6 +90,12 @@ class CloudDatabase {
       if (!snap.empty) {
         throw new Error("User with this email already exists");
       }
+      // Check if ID already exists
+      const docRef = doc(firestore, "users", user.id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        throw new Error("User ID already exists");
+      }
 
       // Add to Firestore using custom ID
       await setDoc(doc(firestore, "users", user.id), this.sanitize(user));
@@ -111,6 +117,85 @@ class CloudDatabase {
       }
     } catch (e) {
       console.error("Update User Error", e);
+    }
+  }
+
+  /**
+   * Updates a user's ID by creating a new document and deleting the old one.
+   * Also updates all foreign key references in Exams and Attempts.
+   * 
+   * @param currentId The current ID of the user
+   * @param newId The desired new ID
+   * @param role The user's role (to determine which references to update)
+   * @param overrides Optional partial user object to apply changes (e.g. new name) during migration
+   */
+  async updateUserId(currentId: string, newId: string, role: UserRole, overrides?: Partial<User>): Promise<User> {
+    try {
+      if (currentId === newId) {
+        // If ID is same, but we have overrides (like name change), just update standard way
+        if (overrides && Object.keys(overrides).length > 0) {
+            const user = (await this.getUser(currentId))!;
+            const updated = { ...user, ...overrides };
+            await this.updateUser(updated);
+            return updated;
+        }
+        return (await this.getUser(currentId))!;
+      }
+
+      // 1. STRICT Uniqueness Check
+      // Since we use the ID as the Document Key, we check if that key exists
+      const newDocRef = doc(firestore, "users", newId);
+      const newDocSnap = await getDoc(newDocRef);
+      
+      if (newDocSnap.exists()) {
+        // Double check it's not the same doc (edge case)
+        if (newDocSnap.id !== currentId) {
+            throw new Error(`The ID "${newId}" is already taken by another user. Please choose a unique ID.`);
+        }
+      }
+
+      // 2. Get Old User Data
+      const oldDocRef = doc(firestore, "users", currentId);
+      const oldDocSnap = await getDoc(oldDocRef);
+      if (!oldDocSnap.exists()) throw new Error("Current user profile not found in database.");
+      
+      const userData = oldDocSnap.data() as User;
+
+      // 3. Create New User Document with updated ID and any overrides (like new name)
+      const updatedUser = { 
+          ...userData, 
+          ...overrides, // Apply name changes here if any
+          id: newId 
+      };
+      
+      await setDoc(newDocRef, this.sanitize(updatedUser));
+
+      // 4. Update References in other collections (Exams or Attempts)
+      if (role === UserRole.INSTRUCTOR) {
+        // Find exams owned by old ID
+        const q = query(collection(firestore, "exams"), where("instructorId", "==", currentId));
+        const snap = await getDocs(q);
+        const updates = snap.docs.map(d => updateDoc(d.ref, { instructorId: newId }));
+        await Promise.all(updates);
+      } else if (role === UserRole.STUDENT) {
+        // Find attempts by old ID
+        const q = query(collection(firestore, "attempts"), where("studentId", "==", currentId));
+        const snap = await getDocs(q);
+        const updates = snap.docs.map(d => updateDoc(d.ref, { studentId: newId }));
+        await Promise.all(updates);
+      }
+
+      // 5. Delete Old User Document
+      await deleteDoc(oldDocRef);
+
+      // 6. Update Local Storage
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+      return updatedUser;
+
+    } catch (e: any) {
+      console.error("Update ID Error", e);
+      throw new Error(e.message || "Failed to update User ID");
     }
   }
 
