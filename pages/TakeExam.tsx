@@ -8,7 +8,7 @@ interface TakeExamProps {
   user: User;
 }
 
-const MAX_VIOLATIONS = 3;
+const MAX_VIOLATIONS = 4;
 
 const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +18,11 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false); // Track state for UI overlay
+  
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null); // Store stream independently of UI
   
   // Anti-cheat refs
   const hasLeftTab = useRef(false);
@@ -41,32 +45,18 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     loadExam();
   }, [id, navigate]);
 
-  // Webcam Setup
+  // Cleanup Camera on Unmount
   useEffect(() => {
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error("Camera denied", err);
-        alert("Camera permission is required for proctoring.");
-      }
-    };
-    startCamera();
     return () => {
-      // Cleanup stream
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
-  // Timer
+  // Timer - Only runs if isStarted is true
   useEffect(() => {
-    if (!exam || timeLeft <= 0) return;
+    if (!exam || !isStarted || timeLeft <= 0) return;
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -78,24 +68,28 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [timeLeft, exam]);
+  }, [timeLeft, exam, isStarted]);
 
-  // Anti-Cheat: Visibility Change & Blur
+  // --- Anti-Cheat Logic ---
+
+  const logViolation = (message: string, type: Violation['type'] = 'TAB_SWITCH') => {
+      const now = Date.now();
+      // Debounce: Ignore violations if they happen within 1 second of each other
+      if (now - lastViolationTime.current < 1000) return;
+      
+      lastViolationTime.current = now;
+      hasLeftTab.current = true;
+      
+      setViolations(prev => [...prev, {
+        timestamp: now,
+        type: type,
+        message: message
+      }]);
+  };
+
+  // 1. Tab Switching / Blur
   useEffect(() => {
-    const logViolation = (message: string) => {
-        const now = Date.now();
-        // Debounce: Ignore violations if they happen within 1 second of each other
-        if (now - lastViolationTime.current < 1000) return;
-        
-        lastViolationTime.current = now;
-        hasLeftTab.current = true;
-        
-        setViolations(prev => [...prev, {
-          timestamp: now,
-          type: 'TAB_SWITCH',
-          message: message
-        }]);
-    };
+    if (!isStarted) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -114,9 +108,49 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
     };
-  }, []);
+  }, [isStarted]);
 
-  // Prevent Copy/Paste
+  // 2. Full Screen Enforcement
+  useEffect(() => {
+    if (!isStarted) return;
+
+    const handleFullScreenChange = () => {
+      const isFull = !!document.fullscreenElement;
+      setIsFullscreen(isFull);
+      if (!isFull) {
+        logViolation('User exited Full Screen mode', 'FULLSCREEN_EXIT');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+  }, [isStarted]);
+
+  // 3. Disable Back Button & Navigation
+  useEffect(() => {
+    if (!isStarted) return;
+
+    window.history.pushState(null, document.title, window.location.href);
+
+    const handlePopState = (event: PopStateEvent) => {
+      window.history.pushState(null, document.title, window.location.href);
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ''; 
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isStarted]);
+
+  // 4. Prevent Copy/Paste/Context Menu
   useEffect(() => {
     const preventDefault = (e: Event) => e.preventDefault();
     document.addEventListener('copy', preventDefault);
@@ -128,6 +162,54 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       document.removeEventListener('contextmenu', preventDefault);
     };
   }, []);
+
+  // --- Strict Start Logic ---
+  const startExam = async () => {
+    try {
+      // 1. Request Camera Permission strictly FIRST
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream; // Store it
+
+      // 2. Request Full Screen
+      try {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+        
+        // 3. Try to Lock Keyboard (Chrome/Edge only) to prevent Escape
+        // @ts-ignore
+        if (navigator.keyboard && navigator.keyboard.lock) {
+            // @ts-ignore
+            await navigator.keyboard.lock(['Escape']);
+        }
+      } catch (fsErr) {
+        // If fullscreen fails, stop camera and block entry
+        stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        throw new Error("Full Screen permission denied");
+      }
+
+      // 4. Activate Exam UI
+      setIsStarted(true);
+      
+    } catch (e: any) {
+      console.error("Start blocked:", e);
+      let msg = "Start Failed. Requirements not met.";
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        msg = "🚫 CAMERA BLOCKED: You cannot take this exam without camera access. Please enable camera permissions in your browser settings and try again.";
+      } else if (e.message.includes("Full Screen")) {
+        msg = "🚫 FULL SCREEN REQUIRED: You must allow Full Screen mode to take this exam.";
+      }
+      alert(msg);
+    }
+  };
+
+  // Attach Camera stream to Video Element once UI is rendered
+  useEffect(() => {
+    if (isStarted && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isStarted]);
+
 
   const handleAnswerChange = (qId: string, val: string) => {
     setAnswers(prev => ({ ...prev, [qId]: val }));
@@ -164,13 +246,21 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     if (!exam) return;
     setIsSubmitting(true);
 
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(e => console.error(e));
+    }
+    
+    // Stop Camera
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+    }
+
     let score = 0;
     let feedback = "";
 
     if (disqualified) {
-      // Force failure
       score = 0;
-      feedback = "⚠️ DISQUALIFIED: You exceeded the maximum allowed violations (Tab switching/Window blur). Your exam has been automatically submitted with a score of 0.";
+      feedback = "⚠️ DISQUALIFIED: You exceeded the maximum allowed violations (Tab switching/Full Screen Exit). Your exam has been automatically submitted with a score of 0.";
     } else {
       const result = await calculateScore(answers);
       score = result.score;
@@ -198,7 +288,6 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   // Monitor violations threshold
   useEffect(() => {
     if (violations.length > MAX_VIOLATIONS && !isSubmitting) {
-      // Trigger forced submission
       handleSubmit(true, true);
     }
   }, [violations, isSubmitting, handleSubmit]);
@@ -211,9 +300,61 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // --- Start Screen Overlay ---
+  if (!isStarted) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white max-w-lg w-full rounded-2xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+            !
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">{exam.title}</h1>
+          <div className="text-left bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm space-y-2 text-slate-600">
+            <p className="font-bold text-slate-800">Exam Rules:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>This exam is <strong>Proctored</strong>. Your camera will be active.</li>
+              <li>The window will go into <strong>Full Screen</strong> mode.</li>
+              <li>Do <strong>NOT</strong> switch tabs or exit full screen.</li>
+              <li>Violations {MAX_VIOLATIONS} will result in <strong>Automatic Disqualification (Score 0)</strong>.</li>
+            </ul>
+          </div>
+          <button 
+            onClick={startExam}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-transform hover:scale-105"
+          >
+            I Agree & Begin Exam
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Blocking Overlay for Fullscreen Exit ---
+  if (!isFullscreen && !isSubmitting) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-red-900 flex flex-col items-center justify-center text-center p-8 text-white">
+        <div className="text-6xl mb-6">⚠️</div>
+        <h1 className="text-4xl font-bold mb-4">EXAM INTERRUPTED</h1>
+        <p className="text-xl mb-8 max-w-xl">
+          You have exited Full Screen mode. This is a security violation.
+          You cannot continue the exam unless you are in Full Screen.
+        </p>
+        <button 
+          onClick={() => {
+            document.documentElement.requestFullscreen().catch(e => console.error(e));
+          }}
+          className="bg-white text-red-900 px-8 py-3 rounded-lg font-bold text-lg shadow-lg hover:bg-red-50 transition-colors"
+        >
+          Return to Exam
+        </button>
+      </div>
+    );
+  }
+
+  // --- Main Exam UI ---
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Exam Header */}
       <header className="bg-slate-900 text-white py-4 px-6 sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
@@ -227,7 +368,6 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       </header>
 
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex gap-8">
-        {/* Main Question Area */}
         <div className="flex-1 space-y-8">
            {exam.questions.map((q, idx) => (
              <div key={q.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -293,6 +433,7 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
               <h3 className="font-bold text-yellow-800 mb-2 text-sm">⚠️ Anti-Cheat Active</h3>
               <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-4">
+                <li>Full Screen Enforced.</li>
                 <li>Tab switching monitored.</li>
                 <li>Limit: <span className="font-bold text-red-600">{MAX_VIOLATIONS} Violations</span> max.</li>
                 <li>Copy/Paste disabled.</li>
