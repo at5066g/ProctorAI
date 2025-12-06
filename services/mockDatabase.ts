@@ -19,14 +19,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
 
-// CSV Data for Initial Seeding
-export const USERS_CSV = `id,name,email,password,role
-101,Anurag tripathi,student@test.com,123456,STUDENT
-102,Abinash Choudhury,abinash@test.com,123456,STUDENT
-103,Abhirup Mishra,abhirup@test.com,123456,STUDENT
-201,Prof. Shwetha,shwetha@test.com,admin123,INSTRUCTOR
-202,Dr. Sowmya,sowmya@test.com,admin123,INSTRUCTOR`;
-
 class CloudDatabase {
   
   // Helper to remove undefined fields which Firestore hates
@@ -123,16 +115,10 @@ class CloudDatabase {
   /**
    * Updates a user's ID by creating a new document and deleting the old one.
    * Also updates all foreign key references in Exams and Attempts.
-   * 
-   * @param currentId The current ID of the user
-   * @param newId The desired new ID
-   * @param role The user's role (to determine which references to update)
-   * @param overrides Optional partial user object to apply changes (e.g. new name) during migration
    */
   async updateUserId(currentId: string, newId: string, role: UserRole, overrides?: Partial<User>): Promise<User> {
     try {
       if (currentId === newId) {
-        // If ID is same, but we have overrides (like name change), just update standard way
         if (overrides && Object.keys(overrides).length > 0) {
             const user = (await this.getUser(currentId))!;
             const updated = { ...user, ...overrides };
@@ -143,12 +129,10 @@ class CloudDatabase {
       }
 
       // 1. STRICT Uniqueness Check
-      // Since we use the ID as the Document Key, we check if that key exists
       const newDocRef = doc(firestore, "users", newId);
       const newDocSnap = await getDoc(newDocRef);
       
       if (newDocSnap.exists()) {
-        // Double check it's not the same doc (edge case)
         if (newDocSnap.id !== currentId) {
             throw new Error(`The ID "${newId}" is already taken by another user. Please choose a unique ID.`);
         }
@@ -161,24 +145,22 @@ class CloudDatabase {
       
       const userData = oldDocSnap.data() as User;
 
-      // 3. Create New User Document with updated ID and any overrides (like new name)
+      // 3. Create New User Document
       const updatedUser = { 
           ...userData, 
-          ...overrides, // Apply name changes here if any
+          ...overrides, 
           id: newId 
       };
       
       await setDoc(newDocRef, this.sanitize(updatedUser));
 
-      // 4. Update References in other collections (Exams or Attempts)
+      // 4. Update References
       if (role === UserRole.INSTRUCTOR) {
-        // Find exams owned by old ID
         const q = query(collection(firestore, "exams"), where("instructorId", "==", currentId));
         const snap = await getDocs(q);
         const updates = snap.docs.map(d => updateDoc(d.ref, { instructorId: newId }));
         await Promise.all(updates);
       } else if (role === UserRole.STUDENT) {
-        // Find attempts by old ID
         const q = query(collection(firestore, "attempts"), where("studentId", "==", currentId));
         const snap = await getDocs(q);
         const updates = snap.docs.map(d => updateDoc(d.ref, { studentId: newId }));
@@ -232,15 +214,12 @@ class CloudDatabase {
   }
 
   async getExam(id: string): Promise<Exam | undefined> {
-    // We can filter on client side for simplicity or query specific doc
     const exams = await this.getExams();
     return exams.find(e => e.id === id);
   }
 
   async createExam(exam: Exam) {
     try {
-      // Use setDoc with the custom ID so it's easier to find
-      // CRITICAL FIX: Sanitize data to remove 'undefined' fields
       await setDoc(doc(firestore, "exams", exam.id), this.sanitize(exam));
     } catch (e) {
       console.error("Create Exam Error", e);
@@ -267,7 +246,7 @@ class CloudDatabase {
       const q = query(collection(firestore, "attempts"), where("examId", "==", id));
       const snapshot = await getDocs(q);
 
-      // 3. Delete all found attempts concurrently
+      // 3. Delete all found attempts
       const deletePromises = snapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
       await Promise.all(deletePromises);
       
@@ -303,8 +282,6 @@ class CloudDatabase {
 
   async getAttempt(id: string): Promise<ExamAttempt | undefined> {
     try {
-       // We fetch all for now or query specific. 
-       // For this simple structure, let's query by ID field if document ID matches
        const q = query(collection(firestore, "attempts"), where("id", "==", id));
        const s = await getDocs(q);
        if (!s.empty) return s.docs[0].data() as ExamAttempt;
@@ -316,36 +293,11 @@ class CloudDatabase {
 
   async saveAttempt(attempt: ExamAttempt) {
     try {
-      // CRITICAL FIX: Sanitize data to remove 'undefined' fields
       await setDoc(doc(firestore, "attempts", attempt.id), this.sanitize(attempt));
     } catch (e) {
       console.error("Save Attempt Error", e);
     }
   }
-
-  // --- Seed Data (One time setup) ---
-  
-  async seedInitialData() {
-    // Check if users exist
-    const snap = await getDocs(collection(firestore, "users"));
-    if (snap.empty) {
-      console.log("Seeding Database with CSV Users...");
-      const lines = USERS_CSV.trim().split('\n');
-      const users = lines.slice(1).map(line => {
-        const [id, name, email, password, role] = line.split(',').map(s => s.trim());
-        return { id, name, email, password, role: role as UserRole };
-      });
-
-      for (const u of users) {
-        await addDoc(collection(firestore, "users"), u);
-      }
-      console.log("Seeding Complete!");
-      alert("Database seeded with initial users!");
-    }
-  }
 }
 
 export const db = new CloudDatabase();
-
-// Run seeder once on load (safe check)
-db.seedInitialData();
