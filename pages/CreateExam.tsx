@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../services/mockDatabase';
@@ -7,7 +6,7 @@ import { Question, QuestionType, Exam, User } from '../types';
 
 const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>(); // Check for ID param
+  const { id } = useParams<{ id: string }>(); 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   
@@ -24,13 +23,12 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const [manualText, setManualText] = useState('');
   const [manualPoints, setManualPoints] = useState(5);
   const [manualOptions, setManualOptions] = useState<string[]>(['', '', '', '']);
-  const [manualCorrect, setManualCorrect] = useState(''); // Index or Value
+  const [manualCorrect, setManualCorrect] = useState(''); 
   const [manualModel, setManualModel] = useState('');
 
   // Master List
   const [questions, setQuestions] = useState<Question[]>([]);
 
-  // Load existing exam if editing
   useEffect(() => {
     if (id) {
       const loadExam = async () => {
@@ -110,7 +108,6 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
     
     setSaving(true);
     const newExam: Exam = {
-      // If editing, preserve ID, else generate new
       id: id ? id : `exam-${Date.now()}`,
       title,
       description,
@@ -121,7 +118,7 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
       isPublished: true
     };
     
-    await db.createExam(newExam); // Acts as update if ID exists
+    await db.createExam(newExam);
     setSaving(false);
     navigate('/dashboard');
   };
@@ -130,90 +127,112 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
 
-  if (loading && id) return <div className="p-8 text-center">Loading Exam Data...</div>;
+  if (loading && id) return <div className="flex h-[50vh] items-center justify-center text-slate-500 font-medium">Fetching Exam Details...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">{id ? 'Edit Exam' : 'Create New Exam'}</h1>
-        <p className="text-slate-500 mt-2">Configure exam details and add questions manually or via AI.</p>
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+      <div className="flex justify-between items-end border-b border-slate-200 pb-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{id ? 'Edit Examination' : 'Create New Exam'}</h1>
+          <p className="text-slate-500 mt-1">Design your assessment using AI or manual inputs.</p>
+        </div>
+        <button 
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2"
+        >
+          {saving ? 'Saving...' : (id ? 'Update Changes' : 'Publish Now')}
+        </button>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">Exam Title</label>
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Exam Configuration</h3>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Exam Title</label>
             <input 
               value={title} onChange={e => setTitle(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              placeholder="e.g. Advanced Calculus Midterm"
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
+              placeholder="e.g. Advanced Calculus Midterm Spring 2024"
             />
           </div>
           <div className="space-y-2">
-             <label className="block text-sm font-medium text-slate-700">Duration (Minutes)</label>
+             <label className="block text-sm font-semibold text-slate-700">Duration (Min)</label>
              <input 
               type="number"
               value={duration} onChange={e => setDuration(Number(e.target.value))}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
              />
           </div>
         </div>
         <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">Description</label>
+            <label className="block text-sm font-semibold text-slate-700">Description / Instructions</label>
             <textarea 
               value={description} onChange={e => setDescription(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none h-24 resize-none"
-              placeholder="Instructions for students..."
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none h-24 resize-none transition-shadow"
+              placeholder="Brief instructions for students..."
             />
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-8 items-start">
         {/* AI Generator Section */}
-        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100 space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-indigo-900 mb-1">✨ AI Question Generator</label>
-            <p className="text-xs text-indigo-700 mb-2">Auto-generate 5 questions based on a topic.</p>
-            <input 
-                value={topic} onChange={e => setTopic(e.target.value)}
-                className="w-full border border-indigo-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="e.g. 'History of Rome'"
-              />
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-xl text-white">
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-white/20 p-1.5 rounded-lg text-lg">✨</span>
+              <label className="text-lg font-bold">AI Question Generator</label>
+            </div>
+            <p className="text-indigo-100 text-sm mb-6">Instantly generate structured questions on any topic using Google Gemini.</p>
+            
+            <div className="space-y-3">
+               <input 
+                 value={topic} onChange={e => setTopic(e.target.value)}
+                 className="w-full bg-white/10 border border-white/20 text-white placeholder-indigo-200 rounded-xl px-4 py-3 focus:bg-white/20 focus:ring-2 focus:ring-white/50 outline-none transition-all"
+                 placeholder="Enter a topic (e.g. 'Thermodynamics')"
+               />
+               <button 
+                 onClick={handleGenerate}
+                 disabled={loading}
+                 className="w-full bg-white text-indigo-700 px-4 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-50 transition-colors disabled:opacity-70"
+               >
+                 {loading ? 'Generating Content...' : 'Auto-Generate Questions'}
+               </button>
+            </div>
           </div>
-          <button 
-            onClick={handleGenerate}
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Generating...' : 'Generate Questions'}
-          </button>
         </div>
 
         {/* Manual Builder Section */}
-        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4">
-           <div>
-             <label className="block text-sm font-bold text-slate-800 mb-1">🛠️ Manual Question Builder</label>
-             <div className="flex gap-2 mb-2">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+           <div className="mb-4 pb-4 border-b border-slate-100">
+             <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+               <span>🛠️</span> Manual Question Builder
+             </label>
+           </div>
+           
+           <div className="space-y-4">
+             <div className="flex bg-slate-100 p-1 rounded-xl">
                <button 
                 onClick={() => setManualType(QuestionType.MCQ)}
-                className={`flex-1 text-xs py-1 rounded border ${manualType === QuestionType.MCQ ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300'}`}
-               >MCQ</button>
+                className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${manualType === QuestionType.MCQ ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+               >Multiple Choice</button>
                <button 
                 onClick={() => setManualType(QuestionType.SHORT_ANSWER)}
-                className={`flex-1 text-xs py-1 rounded border ${manualType === QuestionType.SHORT_ANSWER ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300'}`}
+                className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${manualType === QuestionType.SHORT_ANSWER ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                >Short Answer</button>
              </div>
              
              <textarea 
                value={manualText} onChange={e => setManualText(e.target.value)}
-               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none mb-2"
-               placeholder="Enter question text..."
+               className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+               placeholder="Type your question here..."
                rows={2}
              />
 
              {manualType === QuestionType.MCQ && (
-               <div className="space-y-2">
-                 <div className="text-xs font-semibold text-slate-500">Options (Select correct one)</div>
+               <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                 <div className="text-xs font-bold text-slate-400 uppercase mb-2">Options (Select Correct)</div>
                  {manualOptions.map((opt, i) => (
                    <div key={i} className="flex gap-2 items-center">
                      <input 
@@ -221,10 +240,11 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
                        checked={manualCorrect === opt && opt !== ''}
                        onChange={() => setManualCorrect(opt)}
                        disabled={!opt}
+                       className="w-4 h-4 text-indigo-600"
                      />
                      <input 
                        value={opt} onChange={e => handleOptionChange(i, e.target.value)}
-                       className="flex-1 border border-slate-300 rounded px-2 py-1 text-sm"
+                       className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-indigo-400"
                        placeholder={`Option ${i+1}`}
                      />
                    </div>
@@ -235,23 +255,25 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
              {manualType === QuestionType.SHORT_ANSWER && (
                <input 
                   value={manualModel} onChange={e => setManualModel(e.target.value)}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"
+                  className="w-full border border-slate-200 bg-emerald-50/50 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-400"
                   placeholder="Model Answer (for AI grading)..."
                />
              )}
              
-             <div className="flex items-center gap-2 mt-2">
-                <input 
-                  type="number"
-                  value={manualPoints} onChange={e => setManualPoints(Number(e.target.value))}
-                  className="w-20 border border-slate-300 rounded px-2 py-1 text-sm"
-                />
-                <span className="text-xs text-slate-500">Points</span>
+             <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                    <input 
+                      type="number"
+                      value={manualPoints} onChange={e => setManualPoints(Number(e.target.value))}
+                      className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-center font-bold text-sm"
+                    />
+                    <span className="text-xs text-slate-400 font-bold uppercase">Points</span>
+                </div>
                 <button 
                   onClick={handleAddManual}
-                  className="ml-auto bg-slate-800 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-slate-900"
+                  className="bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors shadow-sm"
                 >
-                  Add
+                  + Add Question
                 </button>
              </div>
            </div>
@@ -260,59 +282,62 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
 
       {/* Question List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-800">Questions ({questions.length})</h2>
+        <div className="flex items-center gap-3">
+           <h2 className="text-xl font-bold text-slate-900">Questions Queue</h2>
+           <span className="bg-slate-200 text-slate-600 px-2 py-1 rounded-md text-xs font-bold">{questions.length}</span>
+        </div>
+        
         {questions.length === 0 && (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
-            No questions yet. Generate some or add manually!
+          <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+            <p className="text-slate-400 font-medium">Your exam is empty. Add questions above.</p>
           </div>
         )}
-        {questions.map((q, idx) => (
-          <div key={q.id} className="bg-white px-6 pb-6 pt-12 rounded-xl shadow-sm border border-slate-200 relative group transition-all hover:shadow-md">
-            <button 
-              onClick={() => removeQuestion(q.id)}
-              className="absolute top-2 right-2 text-xs font-semibold text-slate-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-200 z-10"
-            >
-              Remove
-            </button>
-            <div className="flex items-start gap-4">
-              <span className="bg-slate-100 text-slate-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                {idx + 1}
-              </span>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                   <h3 className="font-medium text-slate-900 mb-2">{q.text}</h3>
-                   <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded shrink-0 ml-4">{q.type}</span>
+
+        <div className="grid gap-4">
+          {questions.map((q, idx) => (
+            <div key={q.id} className="bg-white px-6 pb-6 pt-10 rounded-2xl shadow-sm border border-slate-200 relative group transition-all hover:border-indigo-200 hover:shadow-md">
+              <div className="absolute top-4 right-4 flex gap-2">
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide pt-1.5 mr-2">{q.type.replace('_', ' ')}</span>
+                 <button 
+                  onClick={() => removeQuestion(q.id)}
+                  className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                  title="Remove"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+
+              <div className="flex gap-4">
+                <span className="bg-slate-100 text-slate-500 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200 shadow-sm">
+                  {idx + 1}
+                </span>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-900 text-lg mb-3">{q.text}</h3>
+                  
+                  {q.type === QuestionType.MCQ && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {q.options?.map((opt, i) => (
+                        <div key={i} className={`text-sm px-4 py-3 rounded-xl border flex items-center gap-3 ${opt === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-800' : 'bg-white border-slate-100 text-slate-500'}`}>
+                          <div className={`w-3 h-3 rounded-full border ${opt === q.correctAnswer ? 'bg-green-500 border-green-500' : 'border-slate-300'}`}></div>
+                          {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {q.type === QuestionType.SHORT_ANSWER && (
+                    <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 mt-2">
+                      <span className="text-xs font-bold text-emerald-600 uppercase mb-1 block">Expected Model Answer</span>
+                      <p className="text-sm text-emerald-800">{q.modelAnswer}</p>
+                    </div>
+                  )}
+                  <div className="mt-4 flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">{q.points} PTS</span>
+                  </div>
                 </div>
-                
-                {q.type === QuestionType.MCQ && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {q.options?.map((opt, i) => (
-                      <div key={i} className={`text-sm px-3 py-2 rounded border ${opt === q.correctAnswer ? 'bg-green-50 border-green-200 text-green-700 font-medium' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
-                        {opt}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {q.type === QuestionType.SHORT_ANSWER && (
-                  <div className="mt-2 text-sm text-slate-500 bg-slate-50 p-3 rounded italic">
-                    <span className="font-semibold not-italic">Model Answer:</span> {q.modelAnswer}
-                  </div>
-                )}
-                <div className="mt-3 text-xs text-slate-400 font-medium">Points: {q.points}</div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-end pt-6">
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : (id ? 'Update Exam' : 'Publish Exam')}
-        </button>
+          ))}
+        </div>
       </div>
     </div>
   );
