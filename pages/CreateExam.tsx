@@ -14,6 +14,8 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState(30);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // AI State
   const [topic, setTopic] = useState('');
@@ -44,6 +46,8 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
           setDescription(exam.description);
           setDuration(exam.durationMinutes);
           setQuestions(exam.questions);
+          if (exam.startDate) setStartDate(exam.startDate);
+          if (exam.endDate) setEndDate(exam.endDate);
         } else {
           alert("Exam not found");
           navigate('/dashboard');
@@ -106,6 +110,11 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
   const handleSave = async () => {
     if (!title || questions.length === 0) return alert("Title and questions are required");
     
+    // Basic date validation
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        return alert("Start date cannot be after end date");
+    }
+
     setSaving(true);
     const newExam: Exam = {
       id: id ? id : `exam-${Date.now()}`,
@@ -115,7 +124,9 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
       instructorId: user.id,
       questions,
       createdAt: new Date().toISOString(),
-      isPublished: true
+      isPublished: true,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined
     };
     
     await db.createExam(newExam);
@@ -147,8 +158,8 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
 
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Exam Configuration</h3>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-2">
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700">Exam Title</label>
             <input 
               value={title} onChange={e => setTitle(e.target.value)}
@@ -165,6 +176,30 @@ const CreateExam: React.FC<{ user: User }> = ({ user }) => {
              />
           </div>
         </div>
+
+        <div className="grid md:grid-cols-2 gap-6 pt-2">
+            <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700">Available From (Optional)</label>
+                <input 
+                    type="datetime-local"
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-slate-600"
+                />
+                <p className="text-xs text-slate-400">Students cannot start before this time.</p>
+            </div>
+            <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700">Deadline (Optional)</label>
+                <input 
+                    type="datetime-local"
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow text-slate-600"
+                />
+                <p className="text-xs text-slate-400">Exam closes automatically after this time.</p>
+            </div>
+        </div>
+
         <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700">Description / Instructions</label>
             <textarea 

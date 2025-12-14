@@ -35,6 +35,8 @@ export interface Exam {
   questions: Question[];
   createdAt: string;
   isPublished: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface Answer {

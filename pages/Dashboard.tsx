@@ -107,6 +107,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return attempt;
   };
 
+  const getExamScheduleStatus = (exam: Exam) => {
+      if (!exam.startDate && !exam.endDate) return { status: 'OPEN', label: 'Start Exam', color: 'indigo', disabled: false };
+      
+      const now = new Date();
+      const start = exam.startDate ? new Date(exam.startDate) : new Date(0);
+      const end = exam.endDate ? new Date(exam.endDate) : new Date(8640000000000000);
+
+      if (now < start) {
+          return { 
+              status: 'UPCOMING', 
+              label: `Opens ${start.toLocaleDateString()} ${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`, 
+              color: 'slate',
+              disabled: true
+          };
+      }
+      if (now > end) {
+          return { status: 'CLOSED', label: 'Expired / Closed', color: 'red', disabled: true };
+      }
+      return { status: 'OPEN', label: 'Start Exam', color: 'indigo', disabled: false };
+  };
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
@@ -251,6 +272,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredExams.map(exam => {
              const attempt = getAttemptStatus(exam.id);
+             const schedule = getExamScheduleStatus(exam);
+
              return (
               <div key={exam.id} className={`group bg-white rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border ${!exam.isPublished && user.role === UserRole.INSTRUCTOR ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 shadow-sm'}`}>
                 <div className="flex flex-col h-full justify-between">
@@ -284,7 +307,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         </div>
                       )}
                     </div>
-                    <p className="text-slate-500 text-sm line-clamp-2 mb-6 h-10">{exam.description}</p>
+                    <p className="text-slate-500 text-sm line-clamp-2 mb-4 h-10">{exam.description}</p>
+                    
+                    {/* Date Info */}
+                    {(exam.startDate || exam.endDate) && (
+                        <div className="mb-4 text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                           {exam.startDate && <div>From: <span className="font-semibold">{new Date(exam.startDate).toLocaleString()}</span></div>}
+                           {exam.endDate && <div>Until: <span className="font-semibold">{new Date(exam.endDate).toLocaleString()}</span></div>}
+                        </div>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100">
@@ -314,10 +345,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         ) : (
                           <button
                             onClick={() => navigate(`/exam/${exam.id}`)}
-                            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+                            disabled={schedule.disabled}
+                            className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                                schedule.disabled
+                                ? `bg-${schedule.color}-100 text-${schedule.color}-500 cursor-not-allowed`
+                                : 'bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200'
+                            }`}
                           >
-                            <span>Start Exam</span>
-                            <span>→</span>
+                            <span>{schedule.label}</span>
+                            {!schedule.disabled && <span>→</span>}
                           </button>
                         )}
                       </div>

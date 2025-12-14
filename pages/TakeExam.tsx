@@ -31,6 +31,17 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       if (id) {
         const e = await db.getExam(id);
         if (e) {
+            // Check Scheduling
+            const now = new Date();
+            const start = e.startDate ? new Date(e.startDate) : new Date(0);
+            const end = e.endDate ? new Date(e.endDate) : new Date(8640000000000000);
+
+            if (now < start || now > end) {
+                alert("This exam is currently unavailable due to scheduling restrictions.");
+                navigate('/dashboard');
+                return;
+            }
+
           setExam(e);
           setTimeLeft(e.durationMinutes * 60);
         } else {
