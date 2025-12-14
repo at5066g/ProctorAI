@@ -102,13 +102,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, title 
           <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
             &copy; {new Date().getFullYear()} ProctorAI. Secure Examination Platform.
           </p>
-          <div className="flex justify-center gap-4 mt-2 text-xs text-slate-300 dark:text-slate-600">
-            <span>Powered by Gemini</span>
-            <span>•</span>
-            <span>Firebase Cloud</span>
-            <span>•</span>
-            <span>Vite</span>
-          </div>
         </div>
       </footer>
     </div>
