@@ -41,8 +41,8 @@ const InstructorExamView: React.FC<{ user: User }> = ({ user }) => {
     fetchData();
   }, [id, user.id, navigate]);
 
-  if (loading) return <div className="p-8 text-center">Loading Exam Data...</div>;
-  if (!exam) return <div className="p-8 text-center">Exam not found</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500 dark:text-slate-400">Loading Exam Data...</div>;
+  if (!exam) return <div className="p-8 text-center text-slate-500 dark:text-slate-400">Exam not found</div>;
 
   const averageScore = attempts.length > 0 
     ? Math.round(attempts.reduce((acc, curr) => acc + (curr.score || 0), 0) / attempts.length)
@@ -52,74 +52,74 @@ const InstructorExamView: React.FC<{ user: User }> = ({ user }) => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-           <button onClick={() => navigate('/dashboard')} className="text-slate-500 hover:text-slate-800 text-sm mb-2">← Back to Dashboard</button>
-           <h1 className="text-3xl font-bold text-slate-900">{exam.title}</h1>
-           <p className="text-slate-500">Instructor View • {attempts.length} Attempts</p>
+           <button onClick={() => navigate('/dashboard')} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 text-sm mb-2">← Back to Dashboard</button>
+           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{exam.title}</h1>
+           <p className="text-slate-500 dark:text-slate-400">Instructor View • {attempts.length} Attempts</p>
         </div>
         <div className="flex gap-4">
-          <div className="bg-white px-6 py-3 rounded-lg border border-slate-200 shadow-sm text-center">
-             <div className="text-xs text-slate-400 font-bold uppercase">Average Score</div>
-             <div className="text-2xl font-bold text-indigo-600">{averageScore}%</div>
+          <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+             <div className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">Average Score</div>
+             <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{averageScore}%</div>
           </div>
-          <div className="bg-white px-6 py-3 rounded-lg border border-slate-200 shadow-sm text-center">
-             <div className="text-xs text-slate-400 font-bold uppercase">Students</div>
-             <div className="text-2xl font-bold text-slate-800">{attempts.length}</div>
+          <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+             <div className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase">Students</div>
+             <div className="text-2xl font-bold text-slate-800 dark:text-white">{attempts.length}</div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Student Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date Taken</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Score</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Violations</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Student Name</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Date Taken</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Score</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Violations</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {attempts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">
                     No students have taken this exam yet.
                   </td>
                 </tr>
               ) : (
                 attempts.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={att.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-900">{att.studentName}</div>
-                      <div className="text-xs text-slate-400 font-mono">{att.studentId}</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{att.studentName}</div>
+                      <div className="text-xs text-slate-400 dark:text-slate-500 font-mono">{att.studentId}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                       {new Date(att.startTime).toLocaleDateString()}
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-slate-400 dark:text-slate-500">
                         {new Date(att.startTime).toLocaleTimeString()}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        (att.score || 0) >= 70 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        (att.score || 0) >= 70 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
                         {att.score}%
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       {att.violations.length > 0 ? (
-                        <span className="text-red-600 font-bold text-sm flex items-center gap-1">
+                        <span className="text-red-600 dark:text-red-400 font-bold text-sm flex items-center gap-1">
                           ⚠️ {att.violations.length}
                         </span>
                       ) : (
-                        <span className="text-green-600 text-sm">Clean</span>
+                        <span className="text-green-600 dark:text-green-400 text-sm">Clean</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
                         onClick={() => navigate(`/result/${att.id}`)}
-                        className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium"
                       >
                         View Analysis →
                       </button>

@@ -222,7 +222,7 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
     if (violations.length > MAX_VIOLATIONS && !isSubmitting) handleSubmit(true, true);
   }, [violations, isSubmitting, handleSubmit]);
 
-  if (!exam) return <div className="p-8 text-center">Loading Exam...</div>;
+  if (!exam) return <div className="p-8 text-center text-slate-500 dark:text-slate-400">Loading Exam...</div>;
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -232,20 +232,20 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   if (!isStarted) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white max-w-lg w-full rounded-3xl p-8 text-center space-y-6 shadow-2xl border-4 border-white/10 relative overflow-hidden">
-          <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold mb-4 shadow-inner">
+        <div className="bg-white dark:bg-slate-800 max-w-lg w-full rounded-3xl p-8 text-center space-y-6 shadow-2xl border-4 border-white/10 dark:border-slate-700 relative overflow-hidden transition-colors">
+          <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto text-3xl font-bold mb-4 shadow-inner">
             ⚡
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{exam.title}</h1>
-          <div className="text-left bg-slate-50 p-5 rounded-2xl border border-slate-200 text-sm space-y-3 text-slate-600">
-            <p className="font-bold text-slate-900 uppercase tracking-wide text-xs">Security Protocols</p>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{exam.title}</h1>
+          <div className="text-left bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 text-sm space-y-3 text-slate-600 dark:text-slate-300">
+            <p className="font-bold text-slate-900 dark:text-white uppercase tracking-wide text-xs">Security Protocols</p>
             <ul className="space-y-2">
               <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Proctored session (Camera Active)</li>
               <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Fullscreen Required</li>
               <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>No Tab Switching allowed</li>
             </ul>
           </div>
-          <button onClick={startExam} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-indigo-200 transition-transform hover:scale-[1.02]">
+          <button onClick={startExam} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg shadow-xl shadow-indigo-200 dark:shadow-none transition-transform hover:scale-[1.02]">
             Begin Assessment
           </button>
         </div>
@@ -267,15 +267,15 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 py-3 px-6 sticky top-0 z-40 shadow-sm flex justify-between items-center">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-3 px-6 sticky top-0 z-40 shadow-sm flex justify-between items-center">
         <div>
-          <h1 className="text-sm font-bold text-slate-900 uppercase tracking-wide">{exam.title}</h1>
-          <div className="w-full bg-slate-100 h-1 mt-1 rounded-full overflow-hidden">
+          <h1 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">{exam.title}</h1>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 mt-1 rounded-full overflow-hidden">
              <div className="bg-indigo-600 h-full transition-all duration-500" style={{ width: `${(Object.keys(answers).length / exam.questions.length) * 100}%` }}></div>
           </div>
         </div>
-        <div className={`text-xl font-mono font-bold px-4 py-1.5 rounded-lg border ${timeLeft < 300 ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+        <div className={`text-xl font-mono font-bold px-4 py-1.5 rounded-lg border ${timeLeft < 300 ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
           {formatTime(timeLeft)}
         </div>
       </header>
@@ -283,56 +283,56 @@ const TakeExam: React.FC<TakeExamProps> = ({ user }) => {
       <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex gap-8">
         <div className="flex-1 space-y-6">
            {exam.questions.map((q, idx) => (
-             <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+             <div key={q.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
                 <div className="flex gap-5">
-                  <span className="text-slate-300 font-bold text-2xl select-none">{idx + 1}</span>
+                  <span className="text-slate-300 dark:text-slate-600 font-bold text-2xl select-none">{idx + 1}</span>
                   <div className="flex-1">
-                    <p className="text-xl text-slate-800 font-medium mb-6 select-none leading-relaxed">{q.text}</p>
+                    <p className="text-xl text-slate-800 dark:text-slate-100 font-medium mb-6 select-none leading-relaxed">{q.text}</p>
                     {q.type === QuestionType.MCQ ? (
                       <div className="grid gap-3">
                         {q.options?.map((opt) => (
-                          <label key={opt} className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all group ${answers[q.id] === opt ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-300' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers[q.id] === opt ? 'border-indigo-600' : 'border-slate-300'}`}>
-                               {answers[q.id] === opt && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>}
+                          <label key={opt} className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all group ${answers[q.id] === opt ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300 dark:border-indigo-700 ring-1 ring-indigo-300 dark:ring-indigo-700' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers[q.id] === opt ? 'border-indigo-600 dark:border-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
+                               {answers[q.id] === opt && <div className="w-2.5 h-2.5 bg-indigo-600 dark:bg-indigo-400 rounded-full"></div>}
                             </div>
                             <input type="radio" name={q.id} value={opt} checked={answers[q.id] === opt} onChange={(e) => handleAnswerChange(q.id, e.target.value)} className="hidden" />
-                            <span className={`text-lg select-none ${answers[q.id] === opt ? 'text-indigo-900 font-medium' : 'text-slate-600'}`}>{opt}</span>
+                            <span className={`text-lg select-none ${answers[q.id] === opt ? 'text-indigo-900 dark:text-indigo-300 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>{opt}</span>
                           </label>
                         ))}
                       </div>
                     ) : (
-                      <textarea value={answers[q.id] || ''} onChange={(e) => handleAnswerChange(q.id, e.target.value)} className="w-full border border-slate-300 rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none h-40 resize-y text-lg" placeholder="Type your answer..." spellCheck={false} />
+                      <textarea value={answers[q.id] || ''} onChange={(e) => handleAnswerChange(q.id, e.target.value)} className="w-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl p-4 focus:ring-2 focus:ring-indigo-500 outline-none h-40 resize-y text-lg" placeholder="Type your answer..." spellCheck={false} />
                     )}
                   </div>
                 </div>
              </div>
            ))}
            <div className="flex justify-end pt-4 pb-20">
-             <button onClick={() => handleSubmit(false)} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-xl font-bold shadow-xl shadow-indigo-200 transition-transform hover:-translate-y-1 text-lg disabled:opacity-70">
+             <button onClick={() => handleSubmit(false)} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-xl font-bold shadow-xl shadow-indigo-200 dark:shadow-none transition-transform hover:-translate-y-1 text-lg disabled:opacity-70">
                {isSubmitting ? 'Submitting...' : 'Complete & Submit'}
              </button>
            </div>
         </div>
 
         <div className="hidden lg:block w-80 shrink-0 space-y-6">
-           <div className="bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-900 relative group">
+           <div className="bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-900 dark:border-slate-700 relative group">
               <video ref={videoRef} autoPlay muted playsInline className="w-full h-56 object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
               <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full">
                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">Live Feed</span>
               </div>
            </div>
-           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-              <h3 className="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wide">Session Status</h3>
+           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+              <h3 className="font-bold text-slate-800 dark:text-white mb-4 text-sm uppercase tracking-wide">Session Status</h3>
               <div className="space-y-4">
                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">Violations</span>
+                    <span className="text-slate-500 dark:text-slate-400">Violations</span>
                     <span className={`font-bold ${violations.length > 0 ? 'text-red-500' : 'text-green-500'}`}>{violations.length} / {MAX_VIOLATIONS}</span>
                  </div>
-                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div className="bg-red-500 h-full transition-all" style={{ width: `${(violations.length / MAX_VIOLATIONS) * 100}%` }}></div>
                  </div>
-                 <ul className="text-xs text-slate-400 space-y-2 pt-2 border-t border-slate-100">
+                 <ul className="text-xs text-slate-400 dark:text-slate-500 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <li className="flex items-center gap-2">✓ Fullscreen Active</li>
                     <li className="flex items-center gap-2">✓ Audio/Video Sync</li>
                  </ul>
