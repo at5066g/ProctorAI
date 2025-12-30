@@ -1,10 +1,15 @@
 # 🛡️ ProctorAI - Secure Online Examination Platform
 
 ProctorAI is a cloud-native, AI-powered examination system designed to ensure academic integrity in remote assessments. It features strict anti-cheat proctoring, AI-assisted question generation, and automated grading using Google Gemini.
+
 use pre existing credentials:
+
 Teacher login: teacher@test.com 
+
                 pass:admin123
+                
 Student login: student@test.com
+
                pass: 123456
 [Proctor-AI Preview](https://proctor-ai-virid.vercel.app/)
 ## 🚀 Key Features
