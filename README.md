@@ -2,6 +2,7 @@
 
 ProctorAI is a cloud-native, AI-powered examination system designed to ensure academic integrity in remote assessments. It features strict anti-cheat proctoring, AI-assisted question generation, and automated grading using Google Gemini.
 
+[RAYFALL Preview - for PC only](https://proctor-ai-virid.vercel.app/)
 ## 🚀 Key Features
 
 ### 🤖 Artificial Intelligence (Google Gemini)
