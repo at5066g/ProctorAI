@@ -5,6 +5,7 @@ import { User, UserRole } from '../types';
 const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentUser = db.getCurrentUser();
   
   // Form State
   const [newName, setNewName] = useState('');
@@ -50,6 +51,22 @@ const AdminDashboard: React.FC = () => {
       alert("Error creating user: " + error.message);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteUser = async (userToDelete: User) => {
+    if (userToDelete.id === currentUser?.id) {
+      alert("You cannot delete your own administrative account.");
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete user ${userToDelete.name}? This action cannot be undone and will remove them from the cloud database.`)) {
+      try {
+        await db.deleteUser(userToDelete.id);
+        fetchUsers();
+      } catch (e: any) {
+        alert("Failed to delete user: " + e.message);
+      }
     }
   };
 
@@ -132,13 +149,14 @@ const AdminDashboard: React.FC = () => {
                   <th className="px-6 py-3">Name</th>
                   <th className="px-6 py-3">Email</th>
                   <th className="px-6 py-3">ID</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {loading ? (
-                   <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading users...</td></tr>
+                   <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 dark:text-slate-500">Loading users...</td></tr>
                 ) : users.map(u => (
-                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 group">
                     <td className="px-6 py-3">
                       <span className={`text-[10px] font-bold px-2 py-1 rounded border ${
                         u.role === UserRole.ADMIN ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' :
@@ -151,6 +169,21 @@ const AdminDashboard: React.FC = () => {
                     <td className="px-6 py-3 font-medium text-slate-900 dark:text-white">{u.name}</td>
                     <td className="px-6 py-3 text-slate-600 dark:text-slate-400 text-sm">{u.email}</td>
                     <td className="px-6 py-3 text-slate-400 dark:text-slate-500 text-xs font-mono">{u.id}</td>
+                    <td className="px-6 py-3 text-right">
+                      {u.id !== currentUser?.id ? (
+                        <button 
+                          onClick={() => handleDeleteUser(u)}
+                          className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          title="Delete User"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 dark:text-slate-600 italic px-2">Current Session</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

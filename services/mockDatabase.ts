@@ -6,7 +6,6 @@ import {
 import { User, Exam, ExamAttempt, UserRole } from '../types';
 
 // --- Firebase Configuration ---
-// These will be loaded from your .env file
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -21,7 +20,6 @@ const firestore = getFirestore(app);
 
 class CloudDatabase {
   
-  // Helper to remove undefined fields which Firestore hates
   private sanitize<T>(data: T): T {
     return JSON.parse(JSON.stringify(data));
   }
@@ -30,13 +28,11 @@ class CloudDatabase {
 
   async login(email: string, password: string): Promise<User | null> {
     try {
-      // Query the 'users' collection
       const q = query(collection(firestore, "users"), where("email", "==", email), where("password", "==", password));
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
         const userDoc = querySnapshot.docs[0].data() as User;
-        // Store session locally for persistence across refreshes
         localStorage.setItem('currentUser', JSON.stringify(userDoc));
         return userDoc;
       }
@@ -76,20 +72,16 @@ class CloudDatabase {
 
   async createUser(user: User & { password?: string }) {
     try {
-      // Check if email already exists
       const q = query(collection(firestore, "users"), where("email", "==", user.email));
       const snap = await getDocs(q);
       if (!snap.empty) {
         throw new Error("User with this email already exists");
       }
-      // Check if ID already exists
       const docRef = doc(firestore, "users", user.id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         throw new Error("User ID already exists");
       }
-
-      // Add to Firestore using custom ID
       await setDoc(doc(firestore, "users", user.id), this.sanitize(user));
     } catch (e) {
       console.error("Create User Error", e);
@@ -97,9 +89,17 @@ class CloudDatabase {
     }
   }
 
+  async deleteUser(userId: string) {
+    try {
+      await deleteDoc(doc(firestore, "users", userId));
+    } catch (e) {
+      console.error("Delete User Error", e);
+      throw e;
+    }
+  }
+
   async updateUser(user: User) {
     try {
-      // In a real app, we'd use the Doc ID, but here we query by our custom ID
       const q = query(collection(firestore, "users"), where("id", "==", user.id));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
@@ -112,10 +112,6 @@ class CloudDatabase {
     }
   }
 
-  /**
-   * Updates a user's ID by creating a new document and deleting the old one.
-   * Also updates all foreign key references in Exams and Attempts.
-   */
   async updateUserId(currentId: string, newId: string, role: UserRole, overrides?: Partial<User>): Promise<User> {
     try {
       if (currentId === newId) {
@@ -128,33 +124,23 @@ class CloudDatabase {
         return (await this.getUser(currentId))!;
       }
 
-      // 1. STRICT Uniqueness Check
       const newDocRef = doc(firestore, "users", newId);
       const newDocSnap = await getDoc(newDocRef);
       
       if (newDocSnap.exists()) {
         if (newDocSnap.id !== currentId) {
-            throw new Error(`The ID "${newId}" is already taken by another user. Please choose a unique ID.`);
+            throw new Error(`The ID "${newId}" is already taken by another user.`);
         }
       }
 
-      // 2. Get Old User Data
       const oldDocRef = doc(firestore, "users", currentId);
       const oldDocSnap = await getDoc(oldDocRef);
-      if (!oldDocSnap.exists()) throw new Error("Current user profile not found in database.");
+      if (!oldDocSnap.exists()) throw new Error("Current user profile not found.");
       
       const userData = oldDocSnap.data() as User;
-
-      // 3. Create New User Document
-      const updatedUser = { 
-          ...userData, 
-          ...overrides, 
-          id: newId 
-      };
-      
+      const updatedUser = { ...userData, ...overrides, id: newId };
       await setDoc(newDocRef, this.sanitize(updatedUser));
 
-      // 4. Update References
       if (role === UserRole.INSTRUCTOR) {
         const q = query(collection(firestore, "exams"), where("instructorId", "==", currentId));
         const snap = await getDocs(q);
@@ -167,14 +153,9 @@ class CloudDatabase {
         await Promise.all(updates);
       }
 
-      // 5. Delete Old User Document
       await deleteDoc(oldDocRef);
-
-      // 6. Update Local Storage
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-
       return updatedUser;
-
     } catch (e: any) {
       console.error("Update ID Error", e);
       throw new Error(e.message || "Failed to update User ID");
@@ -239,17 +220,11 @@ class CloudDatabase {
 
   async deleteExam(id: string) {
     try {
-      // 1. Delete the Exam Document
       await deleteDoc(doc(firestore, "exams", id));
-
-      // 2. Cascade Delete: Find all attempts associated with this exam
       const q = query(collection(firestore, "attempts"), where("examId", "==", id));
       const snapshot = await getDocs(q);
-
-      // 3. Delete all found attempts
       const deletePromises = snapshot.docs.map(docSnapshot => deleteDoc(docSnapshot.ref));
       await Promise.all(deletePromises);
-      
     } catch (e) {
       console.error("Delete Exam Error", e);
       throw e;
